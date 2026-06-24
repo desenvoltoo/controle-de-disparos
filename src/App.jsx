@@ -12,9 +12,9 @@ const FIXED_TYPES = ['ROBO', 'URA'];
 const FIXED_STATUS = ['ROBO', 'URA', 'EM_ANDAMENTO', 'CONCLUIDAS', 'MATRICULAS'];
 
 const FIELD_KEYS = {
-  consultor: ['consultor', 'nome', 'nomeConsultor'],
-  tipo: ['tipo', 'tipoDisparo', 'canal'],
-  status: ['status', 'pasta', 'situacao'],
+  consultor: ['consultor_disparo', 'consultor', 'nome', 'nomeConsultor'],
+  tipo: ['tipo_disparo', 'tipo', 'tipoDisparo', 'canal'],
+  status: ['pasta_status', 'status', 'pasta', 'situacao'],
   campanha: ['campanha', 'nomeCampanha', 'arquivo', 'nomeArquivo', 'nome'],
 };
 
@@ -110,20 +110,20 @@ export default function App() {
         <div className="hero__content">
           <p className="eyebrow">Dashboard operacional</p>
           <h1>Controle de Disparos</h1>
-          <span className="hero-subtitle">Disparos, retornos e matrículas sincronizados com o Google Sheets.</span>
+          <span className="hero-subtitle">Dashboard operacional de disparos, retornos e matrículas</span>
           <small>Última atualização: {dashboard?.atualizadoEm || 'aguardando sincronização'}</small>
         </div>
         <button className="button hero__button" type="button" onClick={loadDashboard} disabled={loading}>{loading ? 'Atualizando...' : 'Atualizar dados'}</button>
       </header>
 
-      {error && <div className="alert" role="alert">{error} Tente atualizar novamente em alguns instantes.</div>}
+      {error && <div className="alert" role="alert">Não foi possível carregar os dados do painel. Verifique a API do Apps Script ou tente atualizar novamente.</div>}
       {loading && <div className="loading-card">Carregando dados do dashboard...</div>}
 
       {!loading && dashboard && (
         <>
           <CardsResumo resumo={dashboard.resumo} />
           <Filtros filtros={filtros} opcoes={opcoes} onChange={handleFilterChange} onReset={() => setFiltros(INITIAL_FILTERS)} />
-          <GraficosDashboard arquivos={filteredData.arquivos} consultores={filteredData.consultores} matriculasPorMes={dashboard.matriculasPorMes} matriculasOrigem={dashboard.matriculasOrigem} />
+          <GraficosDashboard arquivos={filteredData.arquivos} ranking={filteredData.ranking} consultores={filteredData.consultores} matriculasPorMes={dashboard.matriculasPorMes} matriculasOrigem={dashboard.matriculasOrigem} />
           <div className="tables-grid">
             <TabelaRanking dados={filteredData.ranking} />
             <TabelaArquivos dados={filteredData.arquivos} />
