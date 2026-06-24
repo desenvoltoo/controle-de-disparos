@@ -8,28 +8,44 @@ import TabelaRanking from './components/TabelaRanking.jsx';
 import { fetchDashboardData } from './services/dashboardService.js';
 
 const INITIAL_FILTERS = { consultor: '', tipo: '', status: '', busca: '' };
-const FILTER_KEYS = {
-  consultor: ['consultor', 'nome'],
+const FIXED_TYPES = ['ROBO', 'URA'];
+const FIXED_STATUS = ['ROBO', 'URA', 'EM_ANDAMENTO', 'CONCLUIDAS', 'MATRICULAS'];
+
+const FIELD_KEYS = {
+  consultor: ['consultor', 'nome', 'nomeConsultor'],
   tipo: ['tipo', 'tipoDisparo', 'canal'],
-  status: ['status', 'pasta'],
-  busca: ['campanha', 'arquivo', 'nome', 'pasta'],
+  status: ['status', 'pasta', 'situacao'],
+  campanha: ['campanha', 'nomeCampanha', 'arquivo', 'nomeArquivo', 'nome'],
 };
 
 function getValue(item, keys) {
   return keys.map((key) => item?.[key]).find((value) => value !== undefined && value !== null) || '';
 }
 
-function itemMatchesFilters(item, filtros) {
-  return Object.entries(filtros).every(([filterKey, filterValue]) => {
-    if (!filterValue) return true;
-    const currentValue = String(getValue(item, FILTER_KEYS[filterKey])).toLowerCase();
-    return currentValue.includes(String(filterValue).toLowerCase());
-  });
+function normalize(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function matchesSelect(item, keys, selectedValue) {
+  if (!selectedValue) return true;
+  const currentValue = normalize(getValue(item, keys));
+  const selected = normalize(selectedValue);
+  return currentValue === selected || currentValue.includes(selected);
+}
+
+function matchesSearch(item, keys, searchValue) {
+  if (!searchValue) return true;
+  return normalize(getValue(item, keys)).includes(normalize(searchValue));
 }
 
 function uniqueOptions(collections, keys) {
   const values = collections.flatMap((collection) => collection.map((item) => getValue(item, keys))).filter(Boolean);
   return Array.from(new Set(values.map(String))).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+}
+
+function mergeOptions(fixedOptions, dynamicOptions) {
+  const options = [...fixedOptions, ...dynamicOptions].filter(Boolean);
+  return Array.from(new Set(options.map(String)));
 }
 
 export default function App() {
@@ -58,20 +74,29 @@ export default function App() {
 
   const filteredData = useMemo(() => {
     const data = dashboard || { ranking: [], arquivos: [], consultores: [], matriculasPorMes: [], matriculasOrigem: [] };
+
     return {
       ...data,
-      ranking: data.ranking.filter((item) => itemMatchesFilters(item, filtros)),
-      arquivos: data.arquivos.filter((item) => itemMatchesFilters(item, filtros)),
-      consultores: data.consultores.filter((item) => itemMatchesFilters(item, filtros)),
+      ranking: data.ranking.filter((item) => (
+        matchesSelect(item, FIELD_KEYS.consultor, filtros.consultor)
+        && matchesSelect(item, FIELD_KEYS.tipo, filtros.tipo)
+      )),
+      arquivos: data.arquivos.filter((item) => (
+        matchesSelect(item, FIELD_KEYS.consultor, filtros.consultor)
+        && matchesSelect(item, FIELD_KEYS.tipo, filtros.tipo)
+        && matchesSelect(item, FIELD_KEYS.status, filtros.status)
+        && matchesSearch(item, FIELD_KEYS.campanha, filtros.busca)
+      )),
+      consultores: data.consultores.filter((item) => matchesSelect(item, FIELD_KEYS.consultor, filtros.consultor)),
     };
   }, [dashboard, filtros]);
 
   const opcoes = useMemo(() => {
     const collections = [dashboard?.ranking || [], dashboard?.arquivos || [], dashboard?.consultores || []];
     return {
-      consultores: uniqueOptions(collections, FILTER_KEYS.consultor),
-      tipos: uniqueOptions(collections, FILTER_KEYS.tipo),
-      status: uniqueOptions(collections, FILTER_KEYS.status),
+      consultores: uniqueOptions(collections, FIELD_KEYS.consultor),
+      tipos: mergeOptions(FIXED_TYPES, uniqueOptions(collections, FIELD_KEYS.tipo)),
+      status: mergeOptions(FIXED_STATUS, uniqueOptions(collections, FIELD_KEYS.status)),
     };
   }, [dashboard]);
 
@@ -82,13 +107,13 @@ export default function App() {
   return (
     <main className="dashboard-shell">
       <header className="hero">
-        <div>
-          <p className="eyebrow">Controle de Disparos</p>
-          <h1>Dashboard operacional</h1>
-          <span className="hero-subtitle">Acompanhe disparos, retornos e matrículas sincronizados com o Google Sheets.</span>
-          {dashboard?.atualizadoEm && <small>Atualizado em: {dashboard.atualizadoEm}</small>}
+        <div className="hero__content">
+          <p className="eyebrow">Dashboard operacional</p>
+          <h1>Controle de Disparos</h1>
+          <span className="hero-subtitle">Disparos, retornos e matrículas sincronizados com o Google Sheets.</span>
+          <small>Última atualização: {dashboard?.atualizadoEm || 'aguardando sincronização'}</small>
         </div>
-        <button className="button" type="button" onClick={loadDashboard} disabled={loading}>{loading ? 'Atualizando...' : 'Atualizar dados'}</button>
+        <button className="button hero__button" type="button" onClick={loadDashboard} disabled={loading}>{loading ? 'Atualizando...' : 'Atualizar dados'}</button>
       </header>
 
       {error && <div className="alert" role="alert">{error} Tente atualizar novamente em alguns instantes.</div>}
