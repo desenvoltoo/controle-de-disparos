@@ -1,56 +1,29 @@
-const numberFormatter = new Intl.NumberFormat('pt-BR');
-
-function toNumber(value) {
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string') return Number(value.replace('%', '').replace(',', '.')) || 0;
-  return 0;
-}
+import { formatNumber, formatPercent, getFirstValue, toNumber } from '../utils/formatters.js';
 
 function getMetric(resumo, keys) {
-  if (!Array.isArray(resumo)) return 0;
-
-  const direct = resumo.find((item) => keys.some((key) => Object.prototype.hasOwnProperty.call(item, key)));
-  if (direct) {
-    const key = keys.find((candidate) => Object.prototype.hasOwnProperty.call(direct, candidate));
-    return toNumber(direct[key]);
+  if (Array.isArray(resumo)) {
+    const direct = resumo.find((item) => keys.some((key) => Object.prototype.hasOwnProperty.call(item || {}, key)));
+    if (direct) return getFirstValue(direct, keys);
+    const byLabel = resumo.find((item) => keys.some((key) => String(item?.indicador || item?.nome || item?.label || item?.metrica || '').toLowerCase().includes(key.toLowerCase())));
+    return byLabel?.valor ?? byLabel?.total ?? 0;
   }
-
-  const byLabel = resumo.find((item) => {
-    const label = String(item.indicador || item.nome || item.label || item.metrica || '').toLowerCase();
-    return keys.some((key) => label.includes(key.toLowerCase()));
-  });
-
-  return toNumber(byLabel?.valor ?? byLabel?.total ?? 0);
-}
-
-function formatPercent(value) {
-  const numericValue = toNumber(value);
-  return `${numericValue.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
+  return getFirstValue(resumo || {}, keys);
 }
 
 export default function CardsResumo({ resumo }) {
-  const totalDisparos = getMetric(resumo, ['totalDisparos', 'disparos', 'total de disparos']);
-  const totalRetornos = getMetric(resumo, ['totalRetornos', 'retornos', 'total de retornos']);
-  const totalMatriculas = getMetric(resumo, ['totalMatriculas', 'matriculas', 'matrículas', 'total de matrículas']);
-  const taxaRetorno = getMetric(resumo, ['taxaRetornoGeral', 'taxa de retorno geral', 'taxaRetorno']);
-  const taxaMatricula = getMetric(resumo, ['taxaMatricula', 'taxa de matrícula', 'taxaMatriculas']);
+  const totalDisparos = getMetric(resumo, ['total_disparos', 'totalDisparos', 'disparos', 'total_leads', 'total de disparos']);
+  const totalRetornos = getMetric(resumo, ['total_retornos', 'totalRetornos', 'retornos', 'retorno', 'total de retornos']);
+  const totalMatriculas = getMetric(resumo, ['total_matriculas', 'totalMatriculas', 'matriculas', 'matrículas', 'MAT', 'total de matrículas']);
+  const taxaRetorno = getMetric(resumo, ['taxa_retorno', 'taxaRetornoGeral', 'taxa de retorno geral', 'taxaRetorno']) || (toNumber(totalDisparos) ? (toNumber(totalRetornos) / toNumber(totalDisparos)) : 0);
+  const taxaMatricula = getMetric(resumo, ['taxa_matricula', 'taxaMatricula', 'taxa de matrícula']) || (toNumber(totalDisparos) ? (toNumber(totalMatriculas) / toNumber(totalDisparos)) : 0);
 
   const cards = [
-    { label: 'Total de disparos', value: numberFormatter.format(totalDisparos), accent: 'blue' },
-    { label: 'Total de retornos', value: numberFormatter.format(totalRetornos), accent: 'green' },
-    { label: 'Total de matrículas', value: numberFormatter.format(totalMatriculas), accent: 'purple' },
-    { label: 'Taxa de retorno geral', value: formatPercent(taxaRetorno), accent: 'orange' },
-    { label: 'Taxa de matrícula', value: formatPercent(taxaMatricula), accent: 'pink' },
+    { label: 'Total de disparos', desc: 'Leads enviados no período', value: formatNumber(totalDisparos), accent: 'blue' },
+    { label: 'Total de retornos', desc: 'Contatos que retornaram', value: formatNumber(totalRetornos), accent: 'green' },
+    { label: 'Total de matrículas', desc: 'Matrículas registradas', value: formatNumber(totalMatriculas), accent: 'purple' },
+    { label: 'Taxa de retorno', desc: 'Retornos sobre disparos', value: formatPercent(taxaRetorno), accent: 'orange' },
+    { label: 'Taxa de matrícula', desc: 'Matrículas sobre disparos', value: formatPercent(taxaMatricula), accent: 'pink' },
   ];
 
-  return (
-    <section className="summary-grid" aria-label="Resumo do dashboard">
-      {cards.map((card) => (
-        <article className={`summary-card summary-card--${card.accent}`} key={card.label}>
-          <span>{card.label}</span>
-          <strong>{card.value}</strong>
-        </article>
-      ))}
-    </section>
-  );
+  return <section className="summary-grid" aria-label="Resumo do dashboard">{cards.map((card) => <article className={`summary-card summary-card--${card.accent}`} key={card.label}><span>{card.label}</span><small>{card.desc}</small><strong>{card.value}</strong></article>)}</section>;
 }

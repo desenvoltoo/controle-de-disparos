@@ -26,12 +26,12 @@ export async function fetchDashboardData() {
   return {
     ...EMPTY_DASHBOARD,
     ...data,
-    resumo: Array.isArray(data?.resumo) ? data.resumo : [],
-    ranking: Array.isArray(data?.ranking) ? data.ranking : [],
-    arquivos: Array.isArray(data?.arquivos) ? data.arquivos : [],
-    consultores: Array.isArray(data?.consultores) ? data.consultores : [],
-    matriculasPorMes: Array.isArray(data?.matriculasPorMes) ? data.matriculasPorMes : [],
-    matriculasOrigem: Array.isArray(data?.matriculasOrigem) ? data.matriculasOrigem : [],
-    atualizadoEm: data?.atualizadoEm || '',
+    resumo: Array.isArray(data?.resumo) ? data.resumo : (data?.resumo || []),
+    ranking: Array.isArray(data?.ranking) ? data.ranking : (Array.isArray(data?.RANKING) ? data.RANKING : []),
+    arquivos: Array.isArray(data?.arquivos) ? data.arquivos : (Array.isArray(data?.ARQUIVOS) ? data.ARQUIVOS : []),
+    consultores: Array.isArray(data?.consultores) ? data.consultores : (Array.isArray(data?.CONSULTORES) ? data.CONSULTORES : []),
+    matriculasPorMes: Array.isArray(data?.matriculasPorMes) ? data.matriculasPorMes : (Array.isArray(data?.MATRICULAS_POR_MES) ? data.MATRICULAS_POR_MES : []),
+    matriculasOrigem: Array.isArray(data?.matriculasOrigem) ? data.matriculasOrigem : (Array.isArray(data?.MATRICULAS_ORIGEM) ? data.MATRICULAS_ORIGEM : []),
+    atualizadoEm: data?.atualizadoEm || data?.atualizado_em || '',
   };
 }
